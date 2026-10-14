@@ -1,8 +1,8 @@
 // =============================================================
-// FEE TABLE MODAL — Bảng phí dịch vụ
+// FEE TABLE MODAL — Bảng phí dịch vụ (Plan D — tối giản)
 // - 2 mode: Bảng đầy đủ / Tra cứu
 // - 3 type: Giao / Lấy / Hoàn
-// - Slider nonlinear + adjust buttons (auto-repeat có global catch)
+// - Mode calc: input to editable + 2 nút flanking (−10 / +10)
 // - Search + highlight + sticky table
 // =============================================================
 
@@ -11,9 +11,9 @@ import { _fmt } from './utils.js';
 import { showToast } from './ui.js';
 
 // ==================== STATE ====================
-let feeMode  = 'table';       // 'table' | 'calc'
-let feeType  = 'del';         // 'del' | 'pick' | 'ret'
-let feeValue = 0;             // số đơn (mode calc)
+let feeMode  = 'table';
+let feeType  = 'del';
+let feeValue = 0;
 let searchValue = '';
 
 const LS_KEYS = {
@@ -29,16 +29,11 @@ const TYPE_LABELS = {
   ret:  'Hoàn'
 };
 
-// Max slider theo type — như mockup
 const TYPE_MAX = {
   del:  50000,
   pick: 100000,
   ret:  100000
 };
-
-// Slider chia 4 đoạn, mỗi đoạn 250 pos (tổng 1000 pos)
-const SLIDER_POS_MAX = 1000;
-const SEGMENT = 250;
 
 // ==================== HELPERS ====================
 function getTableData(type) {
@@ -47,68 +42,15 @@ function getTableData(type) {
   return TABLE_6_DATA;
 }
 
-// Dải thứ tự cố định
-const RANGE_KEYS = ['0_2', '2_4', '4_6', '6_8', '8_10', '10_12', '12_15', 'over_15'];
-
-// Format số cho display (VD 1500 → "1.500" theo vi-VN)
 function formatNum(n) {
   return _fmt(Math.max(0, Math.floor(Number(n) || 0)));
 }
 
-// Clamp value vào [1, maxType]. Nếu <= 0 → trả 0
 function clampValue(v, type) {
   const num = Math.floor(Number(v) || 0);
   if (num <= 0) return 0;
   const max = TYPE_MAX[type] || 50000;
   return Math.min(num, max);
-}
-
-// ==================== SLIDER NONLINEAR ====================
-// posToValue: nhận pos 0-1000 → trả value (đã round theo step của đoạn)
-function posToValue(pos, type) {
-  const p = Math.max(0, Math.min(SLIDER_POS_MAX, Number(pos) || 0));
-  const max = TYPE_MAX[type] || 50000;
-
-  let raw;
-  let step;
-
-  if (p < SEGMENT) {
-    // Đoạn 1: 1 → 100, step 1
-    raw = 1 + (p / SEGMENT) * 99;
-    step = 1;
-  } else if (p < SEGMENT * 2) {
-    // Đoạn 2: 100 → 1000, step 10
-    raw = 100 + ((p - SEGMENT) / SEGMENT) * 900;
-    step = 10;
-  } else if (p < SEGMENT * 3) {
-    // Đoạn 3: 1000 → 10000, step 100
-    raw = 1000 + ((p - SEGMENT * 2) / SEGMENT) * 9000;
-    step = 100;
-  } else {
-    // Đoạn 4: 10000 → max, step 1000
-    raw = 10000 + ((p - SEGMENT * 3) / SEGMENT) * (max - 10000);
-    step = 1000;
-  }
-
-  const rounded = Math.round(raw / step) * step;
-  return clampValue(rounded, type);
-}
-
-// valueToPos: ngược lại — value → pos 0-1000
-function valueToPos(value, type) {
-  const v = clampValue(value, type);
-  if (v <= 0) return 0;
-  const max = TYPE_MAX[type] || 50000;
-
-  if (v < 100) {
-    return ((v - 1) / 99) * SEGMENT;
-  } else if (v < 1000) {
-    return SEGMENT + ((v - 100) / 900) * SEGMENT;
-  } else if (v < 10000) {
-    return SEGMENT * 2 + ((v - 1000) / 9000) * SEGMENT;
-  } else {
-    return SEGMENT * 3 + ((v - 10000) / (max - 10000)) * SEGMENT;
-  }
 }
 
 // ==================== PERSIST ====================
@@ -154,27 +96,17 @@ function syncTypeUI() {
 
 function syncCalcUI() {
   const displayInput = document.getElementById('feeCalcDisplay');
-  const adjInput     = document.getElementById('feeAdjInput');
-  const slider       = document.getElementById('feeSlider');
-  const tickMax      = document.getElementById('feeTickMax');
+  if (!displayInput) return;
 
-  // Display + adj input — cả 2 sync cùng value
-  if (displayInput && document.activeElement !== displayInput) {
-    displayInput.value = feeValue > 0 ? formatNum(feeValue) : '0';
-  }
-  if (adjInput && document.activeElement !== adjInput) {
-    adjInput.value = feeValue > 0 ? String(feeValue) : '0';
-  }
+  // Không ghi đè khi user đang gõ
+  if (document.activeElement === displayInput) return;
 
-  // Slider position
-  if (slider) {
-    const pos = feeValue > 0 ? valueToPos(feeValue, feeType) : 0;
-    slider.value = String(Math.round(pos));
-  }
-
-  // Tick max label theo type
-  if (tickMax) {
-    tickMax.textContent = feeType === 'del' ? '50k' : '100k';
+  if (feeValue > 0) {
+    displayInput.value = formatNum(feeValue);
+    displayInput.removeAttribute('data-empty');
+  } else {
+    displayInput.value = '0';
+    displayInput.setAttribute('data-empty', '1');
   }
 }
 
@@ -186,7 +118,6 @@ function renderTable() {
 
   const data = getTableData(feeType);
 
-  // Header
   let headHtml = '<tr><th>Số đơn</th>';
   for (let i = 0; i < 8; i++) {
     headHtml += `<th>${WEIGHT_LABELS[i].replace('>', '').replace(' kg', '')}</th>`;
@@ -194,15 +125,13 @@ function renderTable() {
   headHtml += '</tr>';
   thead.innerHTML = headHtml;
 
-  // Body
   let bodyHtml = '';
   for (let r = 0; r < data.length; r++) {
     const row = data[r];
     bodyHtml += `<tr data-min="${row.min}" data-max="${row.max}">`;
     bodyHtml += `<td>${row.range}</td>`;
     for (let c = 0; c < 8; c++) {
-      const pts = row.pts[c] || 0;
-      bodyHtml += `<td>${formatNum(pts)}</td>`;
+      bodyHtml += `<td>${formatNum(row.pts[c] || 0)}</td>`;
     }
     bodyHtml += '</tr>';
   }
@@ -227,7 +156,6 @@ function renderCalcResult() {
 
   const data = getTableData(feeType);
 
-  // Tìm row chứa feeValue (fallback row cuối nếu vượt max)
   let rowData = data[data.length - 1];
   for (const row of data) {
     if (feeValue >= row.min && feeValue < row.max) {
@@ -263,10 +191,8 @@ function applySearch(rawValue) {
   const input = document.getElementById('feeSearchInput');
   const clearBtn = document.getElementById('feeSearchClear');
 
-  // Loại ký tự không phải số
   const digitsOnly = String(rawValue || '').replace(/[^\d]/g, '');
 
-  // Nếu user gõ chữ (không phải số)
   if (rawValue && !digitsOnly && String(rawValue).trim() !== '') {
     if (input) input.value = '';
     if (clearBtn) clearBtn.hidden = true;
@@ -276,7 +202,6 @@ function applySearch(rawValue) {
     return;
   }
 
-  // Sync input value về chỉ số
   if (input && input.value !== digitsOnly) input.value = digitsOnly;
   if (clearBtn) clearBtn.hidden = !digitsOnly;
   searchValue = digitsOnly;
@@ -297,20 +222,17 @@ function applySearch(rawValue) {
   const maxRow = data[data.length - 1];
   const highestMin = maxRow.min;
 
-  // Nếu max của row cuối là Infinity → mọi num >= min đều thuộc row cuối
   if (num >= highestMin && !Number.isFinite(maxRow.max)) {
     highlightRow(num, true);
     return;
   }
 
-  // Nếu num vượt max của row cuối (max hữu hạn)
   if (Number.isFinite(maxRow.max) && num >= maxRow.max) {
     highlightRow(null);
     showToast(`⚠️ Số ${formatNum(num)} vượt dải cao nhất (tối đa ${formatNum(maxRow.max - 1)})`, 'warning', 3000);
     return;
   }
 
-  // Tìm row match
   let matchIdx = -1;
   for (let r = 0; r < data.length; r++) {
     const row = data[r];
@@ -334,7 +256,6 @@ function highlightRow(num, isTopRow, matchIdx) {
   const scrollWrap = document.getElementById('feeTableScroll');
   if (!tbody) return;
 
-  // Xóa highlight cũ
   tbody.querySelectorAll('.fee-row-match').forEach(tr => {
     tr.classList.remove('fee-row-match');
   });
@@ -354,7 +275,6 @@ function highlightRow(num, isTopRow, matchIdx) {
 
   targetRow.classList.add('fee-row-match');
 
-  // Scroll mượt tới row
   if (scrollWrap) {
     const rowTop = targetRow.offsetTop;
     const rowHeight = targetRow.offsetHeight;
@@ -370,32 +290,24 @@ function highlightRow(num, isTopRow, matchIdx) {
     }
   }
 }
-// ==================== CALC — SET VALUE ====================
+// ==================== SET VALUE ====================
 function setFeeValue(newValue, sourceEl) {
   const clamped = clampValue(newValue, feeType);
   feeValue = clamped;
 
   const displayInput = document.getElementById('feeCalcDisplay');
-  const adjInput     = document.getElementById('feeAdjInput');
-  const slider       = document.getElementById('feeSlider');
 
-  // Update input nào không phải source và không đang focus
   if (displayInput && displayInput !== sourceEl && document.activeElement !== displayInput) {
-    displayInput.value = feeValue > 0 ? formatNum(feeValue) : '0';
-  }
-  if (adjInput && adjInput !== sourceEl && document.activeElement !== adjInput) {
-    adjInput.value = feeValue > 0 ? String(feeValue) : '0';
-  }
-
-  // Update slider position
-  if (slider) {
-    slider.value = String(Math.round(feeValue > 0 ? valueToPos(feeValue, feeType) : 0));
+    if (feeValue > 0) {
+      displayInput.value = formatNum(feeValue);
+      displayInput.removeAttribute('data-empty');
+    } else {
+      displayInput.value = '0';
+      displayInput.setAttribute('data-empty', '1');
+    }
   }
 
-  // Render kết quả
   renderCalcResult();
-
-  // Persist
   persistFeeState();
 }
 
@@ -403,7 +315,7 @@ function setFeeValue(newValue, sourceEl) {
 const _adjTimers = new WeakMap();
 
 function startAdjRepeat(btn) {
-  // ⭐ CHỐNG DOUBLE-START: đang giữ rồi thì bỏ qua
+  // Chặn double-start
   if (_adjTimers.has(btn)) return;
 
   const delta = parseInt(btn.dataset.delta, 10);
@@ -412,11 +324,9 @@ function startAdjRepeat(btn) {
   // Nhấn lần đầu — apply ngay
   setFeeValue(feeValue + delta);
 
-  // State object giữ CẢ timeout + interval (tránh mất ref)
   const state = { timeout: null, interval: null };
   _adjTimers.set(btn, state);
 
-  // Sau 500ms → auto-repeat 100ms/lần
   state.timeout = setTimeout(() => {
     state.timeout = null;
     state.interval = setInterval(() => {
@@ -433,7 +343,6 @@ function stopAdjRepeat(btn) {
   _adjTimers.delete(btn);
 }
 
-// ⭐ Stop TẤT CẢ button — dùng cho global catch
 function stopAllAdjRepeat() {
   document.querySelectorAll('.fee-adj-btn').forEach(btn => stopAdjRepeat(btn));
 }
@@ -443,31 +352,26 @@ function attachAdjustButtons() {
     if (btn.dataset.adjAttached === '1') return;
     btn.dataset.adjAttached = '1';
 
-    // Pointer events (chuẩn hơn mouse/touch riêng biệt)
     btn.addEventListener('pointerdown', e => {
       e.preventDefault();
       btn.setPointerCapture?.(e.pointerId);
       startAdjRepeat(btn);
     });
-    btn.addEventListener('pointerup', () => stopAdjRepeat(btn));
+    btn.addEventListener('pointerup',     () => stopAdjRepeat(btn));
     btn.addEventListener('pointercancel', () => stopAdjRepeat(btn));
-    btn.addEventListener('pointerleave', () => stopAdjRepeat(btn));
+    btn.addEventListener('pointerleave',  () => stopAdjRepeat(btn));
 
-    // Fallback touch (một số browser cũ không fire pointer)
+    // Fallback touch cho browser cũ
     btn.addEventListener('touchstart', e => {
-      if (e.pointerType) return;   // đã handled bởi pointer
+      if (e.pointerType) return;
       e.preventDefault();
       startAdjRepeat(btn);
     }, { passive: false });
-    btn.addEventListener('touchend', () => stopAdjRepeat(btn));
+    btn.addEventListener('touchend',    () => stopAdjRepeat(btn));
     btn.addEventListener('touchcancel', () => stopAdjRepeat(btn));
   });
 
-  // ⭐ GLOBAL CATCH — attach 1 lần cho cả document
-  // Xử lý các case pointer không fire trên button:
-  //   - user vuốt tay ra ngoài button rồi nhả
-  //   - app bị blur (chuyển tab, khoá màn hình)
-  //   - pointerup miss do setPointerCapture lỗi
+  // Global catch — chỉ hook 1 lần
   if (!window.__feeAdjGlobalHooked) {
     window.__feeAdjGlobalHooked = true;
 
@@ -485,77 +389,38 @@ function attachAdjustButtons() {
 // ==================== INPUT EVENTS ====================
 function attachCalcInputs() {
   const displayInput = document.getElementById('feeCalcDisplay');
-  const adjInput     = document.getElementById('feeAdjInput');
+  if (!displayInput || displayInput.dataset.feeAttached === '1') return;
+  displayInput.dataset.feeAttached = '1';
 
-  // Display input (32px, editable)
-  if (displayInput && !displayInput.dataset.feeAttached) {
-    displayInput.dataset.feeAttached = '1';
-
-    displayInput.addEventListener('focus', () => {
-      // Cho user gõ raw số, bỏ format dấu chấm
-      displayInput.value = feeValue > 0 ? String(feeValue) : '';
-    });
-
-    displayInput.addEventListener('input', () => {
-      const cleaned = displayInput.value.replace(/[^\d]/g, '');
-      if (displayInput.value !== cleaned) displayInput.value = cleaned;
-    });
-
-    displayInput.addEventListener('blur', () => {
-      const raw = parseInt(displayInput.value, 10);
-      const newVal = Number.isFinite(raw) && raw > 0 ? raw : 0;
-      setFeeValue(newVal, displayInput);
-      displayInput.value = feeValue > 0 ? formatNum(feeValue) : '0';
-    });
-
-    displayInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        displayInput.blur();
-      }
-    });
-  }
-
-  // Adj input (nhỏ, raw number)
-  if (adjInput && !adjInput.dataset.feeAttached) {
-    adjInput.dataset.feeAttached = '1';
-
-    adjInput.addEventListener('input', () => {
-      const cleaned = adjInput.value.replace(/[^\d]/g, '');
-      if (adjInput.value !== cleaned) adjInput.value = cleaned;
-    });
-
-    adjInput.addEventListener('blur', () => {
-      const raw = parseInt(adjInput.value, 10);
-      const newVal = Number.isFinite(raw) && raw > 0 ? raw : 0;
-      setFeeValue(newVal, adjInput);
-      adjInput.value = feeValue > 0 ? String(feeValue) : '0';
-    });
-
-    adjInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        adjInput.blur();
-      }
-    });
-  }
-}
-
-// ==================== SLIDER EVENT ====================
-function attachSlider() {
-  const slider = document.getElementById('feeSlider');
-  if (!slider || slider.dataset.feeAttached === '1') return;
-  slider.dataset.feeAttached = '1';
-
-  slider.addEventListener('input', () => {
-    const pos = parseFloat(slider.value);
-    const newVal = posToValue(pos, feeType);
-    feeValue = newVal;
-    setFeeValue(newVal);
+  displayInput.addEventListener('focus', () => {
+    // Cho user gõ raw số, bỏ format dấu chấm
+    displayInput.value = feeValue > 0 ? String(feeValue) : '';
   });
 
-  slider.addEventListener('change', () => {
-    persistFeeState();
+  displayInput.addEventListener('input', () => {
+    const cleaned = displayInput.value.replace(/[^\d]/g, '');
+    if (displayInput.value !== cleaned) displayInput.value = cleaned;
+  });
+
+  displayInput.addEventListener('blur', () => {
+    const raw = parseInt(displayInput.value, 10);
+    const newVal = Number.isFinite(raw) && raw > 0 ? raw : 0;
+    setFeeValue(newVal, displayInput);
+
+    if (feeValue > 0) {
+      displayInput.value = formatNum(feeValue);
+      displayInput.removeAttribute('data-empty');
+    } else {
+      displayInput.value = '0';
+      displayInput.setAttribute('data-empty', '1');
+    }
+  });
+
+  displayInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      displayInput.blur();
+    }
   });
 }
 
@@ -568,9 +433,7 @@ function attachSearch() {
   let debounceTimer = null;
   input.addEventListener('input', () => {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      applySearch(input.value);
-    }, 250);
+    debounceTimer = setTimeout(() => applySearch(input.value), 250);
   });
 
   input.addEventListener('keydown', e => {
@@ -604,15 +467,12 @@ function attachTypeTabs() {
 export function openFeeTableModal() {
   loadFeeState();
 
-  // Sync UI
   syncModeUI();
   syncTypeUI();
   syncCalcUI();
 
-  // Render
   if (feeMode === 'table') {
     renderTable();
-    // Nếu có search cũ → apply lại
     const input = document.getElementById('feeSearchInput');
     if (input) {
       input.value = searchValue || '';
@@ -622,15 +482,12 @@ export function openFeeTableModal() {
     renderCalcResult();
   }
 
-  // Attach events (idempotent — có check dataset.feeAttached)
-  attachSlider();
   attachAdjustButtons();
   attachCalcInputs();
   attachSearch();
   attachModeSwitch();
   attachTypeTabs();
 
-  // Mở modal
   const modal = document.getElementById('feeTableModal');
   if (modal) modal.classList.add('active');
 }
@@ -639,10 +496,7 @@ export function closeFeeTableModal() {
   const modal = document.getElementById('feeTableModal');
   if (modal) modal.classList.remove('active');
 
-  // Stop mọi auto-repeat còn sót
   stopAllAdjRepeat();
-
-  // Persist
   persistFeeState();
 }
 
@@ -669,7 +523,6 @@ export function setFeeType(type) {
   if (feeType === type) return;
 
   feeType = type;
-  // Clamp lại value theo max mới
   feeValue = clampValue(feeValue, type);
 
   syncTypeUI();
@@ -677,7 +530,6 @@ export function setFeeType(type) {
 
   if (feeMode === 'table') {
     renderTable();
-    // Xóa search khi đổi type (vì data khác)
     const input = document.getElementById('feeSearchInput');
     if (input) input.value = '';
     searchValue = '';
@@ -709,12 +561,10 @@ export function initFeeTable() {
   loadFeeState();
   attachModeSwitch();
   attachTypeTabs();
-  attachSlider();
   attachAdjustButtons();
   attachCalcInputs();
   attachSearch();
 
-  // Đóng khi ESC
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     const modal = document.getElementById('feeTableModal');
@@ -723,7 +573,6 @@ export function initFeeTable() {
     }
   });
 
-  // Đóng khi click backdrop (không đóng khi click vào modal-box)
   const modal = document.getElementById('feeTableModal');
   if (modal) {
     modal.addEventListener('click', e => {
