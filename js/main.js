@@ -50,7 +50,7 @@ import { undoLast } from './undo.js';
 import { showAlert, showConfirm } from './dialog.js';
 import { WEIGHT_KEYS } from './config.js';
 import { requestPrecacheTesseract } from './sw-bridge.js';
-// ⭐ MỚI: fee-table
+// ⭐ FEE TABLE — Bảng phí dịch vụ (Plan D)
 import {
   openFeeTableModal, closeFeeTableModal, initFeeTable,
   setFeeMode, setFeeType, clearFeeSearch
@@ -200,7 +200,6 @@ function _openOcrPicker() {
   const input = document.getElementById('ocrFileInput');
   if (input) input.click();
 }
-
 // ================ AUTO-UPDATE ================
 let swRegistration = null;
 let currentAppVersion = null;
@@ -477,7 +476,7 @@ Object.assign(window, {
   closeAllOpportunitiesModal,
   setAllOppFilter,
 
-  // ⭐ MỚI: fee-table
+  // ⭐ FEE TABLE — Bảng phí dịch vụ
   openFeeTableModal,
   closeFeeTableModal,
   setFeeMode,
@@ -602,7 +601,7 @@ window.addEventListener('spx:storage-error', () => {
 
   initOcrCache().catch(e => console.warn('[Init] OCR cache init fail:', e));
 
-  // ⭐ MỚI: khởi tạo fee-table (attach events 1 lần)
+  // ⭐ FEE TABLE — khởi tạo events 1 lần
   try { initFeeTable(); } catch (e) { console.warn('[Init] FeeTable init fail:', e); }
 
   registerSW();
@@ -613,8 +612,7 @@ window.addEventListener('spx:storage-error', () => {
 
   _runShareTargetIfNeeded();
 
-  // ⭐ AUTO BACKUP CHECK — sau 5 giây (đợi app render xong)
-  // Nếu đang bận (form/modal đang mở hoặc OCR đang chạy) thì lùi lại 60 giây, tối đa 5 lần — tránh hộp thoại bật đè lúc đang nhập
+  // AUTO BACKUP CHECK — sau 5 giây
   const _tryAutoBackup = (left) => {
     const busy = document.querySelector('.modal-shade.active') ||
                  document.getElementById('ocrLoadingOverlay')?.style.display === 'flex';
