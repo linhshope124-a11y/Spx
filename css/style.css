@@ -3096,3 +3096,117 @@ a.menu-item:visited { color: var(--text-1); }
     animation: none !important;
   }
 }
+/* =============================================================
+   FEE TABLE — PLAN D FINAL FIXES
+   Override các rule cũ, fix 3 bug:
+   1. [hidden] panel bị ghi đè
+   2. Input số đơn quá to
+   3. Empty state bị cắt
+   ============================================================= */
+
+/* ---------- FIX 1: [hidden] phải thắng display:flex ---------- */
+.fee-panel[hidden] {
+  display: none !important;
+}
+
+/* ---------- FIX 2: Input số đơn gọn như search box ---------- */
+.fee-calc-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  padding: 16px 20px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.fee-calc-display-input {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  text-align: center;
+  outline: none;
+  cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  height: 38px;
+}
+.fee-calc-display-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  background: var(--surface);
+}
+.fee-calc-display-input[data-empty="1"] {
+  color: var(--text-3);
+}
+
+.fee-adj-btn {
+  min-width: 56px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fee-adj-btn:active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  transform: scale(0.96);
+}
+.fee-adj-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- FIX 3: Empty state không bị cắt ---------- */
+.fee-panel-calc {
+  min-height: 0;
+}
+.fee-result,
+.fee-empty {
+  min-height: 0;
+}
+.fee-empty {
+  display: none;
+  padding: 32px 20px;
+  text-align: center;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+.fee-empty.fee-empty-show { display: flex; }
+.fee-empty-txt {
+  font-size: 13px;
+  color: var(--text-3);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* ---------- Responsive override cho mobile nhỏ ---------- */
+@media (max-width: 360px) {
+  .fee-calc-row { padding: 12px 14px; gap: 6px; }
+  .fee-calc-display-input { font-size: 14px; padding: 8px 10px; height: 36px; }
+  .fee-adj-btn { min-width: 48px; height: 36px; font-size: 13px; padding: 0 8px; }
+}
