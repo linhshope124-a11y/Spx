@@ -3138,3 +3138,157 @@ a.menu-item:visited { color: var(--text-1); }
     transition: none !important;
   }
 }
+/* =============================================================
+   RESPONSIVE — Tablet · Laptop · Landscape
+   Chỉ ADD rules cho màn hình lớn — mobile portrait giữ nguyên
+   ============================================================= */
+
+/* ---------- 1. dvh fallback (fix address bar mobile) ---------- */
+.modal-shade {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ---------- 2. Tablet portrait+ (≥ 600px) ---------- */
+@media (min-width: 600px) {
+  .header-wrapper,
+  .layout-shell {
+    max-width: 720px;
+  }
+
+  .bottom-nav {
+    max-width: 640px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* Modal: bottom sheet → centered */
+  .modal-shade {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal-box {
+    max-width: 640px;
+    max-height: 85vh;
+    max-height: 85dvh;
+    border-radius: 20px;
+    border-bottom: 1px solid var(--border);
+    animation: modalPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes modalPop {
+    from { transform: scale(0.94); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .fee-table-modal-box {
+    max-width: 720px;
+    max-height: 90vh;
+    max-height: 90dvh;
+  }
+
+  /* Table dùng flex thay vì max-height cứng */
+  .fee-table-scroll {
+    max-height: none;
+    flex: 1;
+  }
+
+  .dialog-shade {
+    align-items: center;
+  }
+}
+
+/* ---------- 3. Tablet landscape / laptop nhỏ (≥ 900px) ---------- */
+@media (min-width: 900px) {
+  .header-wrapper,
+  .layout-shell {
+    max-width: 900px;
+  }
+
+  .bottom-nav          { max-width: 800px; }
+  .modal-box           { max-width: 800px; }
+  .fee-table-modal-box { max-width: 920px; }
+  .dialog-box          { max-width: 440px; }
+}
+
+/* ---------- 4. Desktop (≥ 1200px) ---------- */
+@media (min-width: 1200px) {
+  .header-wrapper,
+  .layout-shell {
+    max-width: 1000px;
+  }
+
+  .bottom-nav          { max-width: 880px; }
+  .fee-table-modal-box { max-width: 1000px; }
+}
+
+/* ---------- 5. Landscape mobile (xoay ngang, height ≤ 540px) ---------- */
+@media (orientation: landscape) and (max-height: 540px) {
+  /* Modal full screen */
+  .modal-shade {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .modal-box {
+    max-width: 100%;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+    animation: none;
+  }
+
+  /* Header gọn */
+  .modal-box-head,
+  .fee-table-header {
+    padding: 10px 16px;
+  }
+
+  /* Tabs gọn */
+  .fee-mode-switch,
+  .fee-type-tabs,
+  .modal-tabs {
+    padding: 8px 16px;
+  }
+
+  /* Fee table scroll full */
+  .fee-table-scroll {
+    max-height: none;
+    flex: 1;
+  }
+
+  /* Calc mode compact */
+  .fee-calc-display-wrap  { padding: 12px 20px 10px; }
+  .fee-calc-display-input { font-size: 30px; padding: 10px; }
+  .fee-slider-wrap        { padding: 0 20px 8px; }
+  .fee-adjust-row         { padding: 10px 20px; }
+  .fee-adj-btn            { height: 42px; }
+
+  .dialog-box {
+    max-width: 460px;
+  }
+}
+
+/* ---------- 6. Landscape rất thấp (height ≤ 400px) ---------- */
+@media (orientation: landscape) and (max-height: 400px) {
+  .hero-value          { font-size: clamp(24px, 5vw, 32px); }
+  .hero-sm .hero-value { font-size: clamp(20px, 4vw, 26px); }
+
+  .fee-calc-display-input {
+    font-size: 26px;
+    padding: 8px;
+  }
+}
+
+/* ---------- 7. Ngăn iOS auto-zoom khi focus input ---------- */
+@media (hover: none) and (pointer: coarse) {
+  .input-control,
+  .fee-search-input,
+  .fee-adj-input {
+    font-size: 16px;
+  }
+}
