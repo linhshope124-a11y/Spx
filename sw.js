@@ -3,13 +3,11 @@
 // Cache: app shell (CACHE) + Tesseract (TESS_CACHE) + Share Target
 //
 // ⚠️ MỖI LẦN SỬA FILE TRONG CORE → BUMP CACHE VERSION
-//    - spx-tracker-v3 → spx-tracker-v4 → ...
-//    - TESS_CACHE và SHARE_CACHE KHÔNG cần bump (dữ liệu không đổi)
 // =============================================================
 
-const CACHE       = 'spx-tracker-v2';     // ⭐ v23 — thêm fee-table.js
-const TESS_CACHE  = 'spx-tesseract-v1';    // giữ nguyên — Tesseract không đổi
-const SHARE_CACHE = 'spx-shared-files';    // giữ nguyên — dữ liệu tạm
+const CACHE       = 'spx-tracker-v3';     // ⭐ v24 — responsive CSS + manifest orientation
+const TESS_CACHE  = 'spx-tesseract-v1';    // giữ nguyên
+const SHARE_CACHE = 'spx-shared-files';    // giữ nguyên
 
 const CORE = [
   './',
@@ -35,16 +33,14 @@ const CORE = [
   './js/cloud.js',
   './js/undo.js',
   './js/dialog.js',
-  './js/fee-table.js'      // ⭐ v23: file mới — bảng phí dịch vụ
+  './js/fee-table.js'
 ];
 
 // ==================== TESSERACT RUNTIME URLs ====================
-// Khi user bấm 📷 lần đầu, 3 URL này được precache.
-// Lần sau OCR chạy được cả khi offline.
 const TESS_RUNTIME_URLS = [
   'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
   'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-  'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5-core/tesseract-core-simd.wasm.js',
   'https://tessdata.projectnaptha.com/4.0.0/vie.traineddata.gz'
 ];
 
@@ -52,7 +48,6 @@ const TESS_RUNTIME_URLS = [
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(CORE))
-    // KHÔNG skipWaiting — chờ user bấm "Cập nhật"
   );
 });
 
@@ -86,7 +81,6 @@ self.addEventListener('message', e => {
     return;
   }
 
-  // 📷 Precache Tesseract khi user thực sự dùng OCR
   if (data.type === 'PRECACHE_TESSERACT') {
     e.waitUntil(
       caches.open(TESS_CACHE).then(async cache => {
@@ -175,7 +169,6 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
 
-  // POST /share-target
   if (req.method === 'POST') {
     if (url.origin === self.location.origin && url.pathname.endsWith('/share-target')) {
       e.respondWith(handleShareTarget(req));
@@ -185,8 +178,6 @@ self.addEventListener('fetch', e => {
 
   if (req.method !== 'GET') return;
 
-  // ===== Tesseract URLs (cross-origin) =====
-  // Cache-first từ TESS_CACHE. Nếu chưa có → fetch rồi cache.
   if (_isTesseractUrl(req.url)) {
     e.respondWith(
       caches.open(TESS_CACHE).then(async cache => {
@@ -206,16 +197,13 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // ===== Same-origin requests =====
   if (url.origin !== self.location.origin) return;
 
-  // version.json → luôn network (no-store)
   if (url.pathname.endsWith('/version.json')) {
     e.respondWith(fetch(req, { cache: 'no-store' }));
     return;
   }
 
-  // Static assets → cache-first
   if (_isStaticAsset(url.pathname)) {
     e.respondWith(
       caches.match(req, { ignoreSearch: true }).then(cached => {
@@ -234,7 +222,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Còn lại → network-first
   e.respondWith(
     fetch(req)
       .then(res => {
