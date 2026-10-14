@@ -5,7 +5,7 @@
 // ⚠️ MỖI LẦN SỬA FILE TRONG CORE → BUMP CACHE VERSION
 // =============================================================
 
-const CACHE       = 'spx-tracker-v4';     // ⭐ v24 — responsive CSS + manifest orientation
+const CACHE       = 'spx-tracker-v6';     // ⭐ v24 — responsive CSS + manifest orientation
 const TESS_CACHE  = 'spx-tesseract-v1';    // giữ nguyên
 const SHARE_CACHE = 'spx-shared-files';    // giữ nguyên
 
