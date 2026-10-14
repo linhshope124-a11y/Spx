@@ -2,7 +2,7 @@
 // FEE TABLE MODAL — Bảng phí dịch vụ
 // - 2 mode: Bảng đầy đủ / Tra cứu
 // - 3 type: Giao / Lấy / Hoàn
-// - Slider nonlinear + adjust buttons
+// - Slider nonlinear + adjust buttons (auto-repeat có global catch)
 // - Search + highlight + sticky table
 // =============================================================
 
@@ -47,29 +47,10 @@ function getTableData(type) {
   return TABLE_6_DATA;
 }
 
-function getLabelForKey(key) {
-  const suffixMap = {
-    '0_2':     '>0 - 2 kg',
-    '2_4':     '>2 - 4 kg',
-    '4_6':     '>4 - 6 kg',
-    '6_8':     '>6 - 8 kg',
-    '8_10':    '>8 - 10 kg',
-    '10_12':   '>10 - 12 kg',
-    '12_15':   '>12 - 15 kg',
-    'over_15': '>15 kg'
-  };
-  return suffixMap[key] || key;
-}
-
 // Dải thứ tự cố định
 const RANGE_KEYS = ['0_2', '2_4', '4_6', '6_8', '8_10', '10_12', '12_15', 'over_15'];
 
-// Map row index (0-7) → key dải
-function getRangeKeyByCol(colIdx) {
-  return RANGE_KEYS[colIdx] || null;
-}
-
-// Format số cho display (VD 1500 → "1,500")
+// Format số cho display (VD 1500 → "1.500" theo vi-VN)
 function formatNum(n) {
   return _fmt(Math.max(0, Math.floor(Number(n) || 0)));
 }
@@ -155,12 +136,10 @@ function persistFeeState() {
 
 // ==================== UI SYNC ====================
 function syncModeUI() {
-  // Mode buttons
   document.querySelectorAll('.fee-mode-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === feeMode);
   });
 
-  // Panels
   const panelTable = document.getElementById('feePanelTable');
   const panelCalc  = document.getElementById('feePanelCalc');
   if (panelTable) panelTable.hidden = feeMode !== 'table';
@@ -180,15 +159,11 @@ function syncCalcUI() {
   const tickMax      = document.getElementById('feeTickMax');
 
   // Display + adj input — cả 2 sync cùng value
-  if (displayInput) {
-    if (document.activeElement !== displayInput) {
-      displayInput.value = feeValue > 0 ? formatNum(feeValue) : '0';
-    }
+  if (displayInput && document.activeElement !== displayInput) {
+    displayInput.value = feeValue > 0 ? formatNum(feeValue) : '0';
   }
-  if (adjInput) {
-    if (document.activeElement !== adjInput) {
-      adjInput.value = feeValue > 0 ? String(feeValue) : '0';
-    }
+  if (adjInput && document.activeElement !== adjInput) {
+    adjInput.value = feeValue > 0 ? String(feeValue) : '0';
   }
 
   // Slider position
@@ -199,7 +174,7 @@ function syncCalcUI() {
 
   // Tick max label theo type
   if (tickMax) {
-    tickMax.textContent = feeType === 'del' ? '50K' : '100K';
+    tickMax.textContent = feeType === 'del' ? '50k' : '100k';
   }
 }
 
@@ -252,8 +227,8 @@ function renderCalcResult() {
 
   const data = getTableData(feeType);
 
-  // Tìm row chứa feeValue
-  let rowData = data[data.length - 1];   // default = row cuối (vượt max)
+  // Tìm row chứa feeValue (fallback row cuối nếu vượt max)
+  let rowData = data[data.length - 1];
   for (const row of data) {
     if (feeValue >= row.min && feeValue < row.max) {
       rowData = row;
@@ -282,17 +257,16 @@ function renderCalcResult() {
 
   resultEl.innerHTML = html;
 }
+
 // ==================== SEARCH — MODE TABLE ====================
 function applySearch(rawValue) {
   const input = document.getElementById('feeSearchInput');
   const clearBtn = document.getElementById('feeSearchClear');
-  const tbody = document.getElementById('feeTableBody');
-  const scrollWrap = document.getElementById('feeTableScroll');
 
   // Loại ký tự không phải số
   const digitsOnly = String(rawValue || '').replace(/[^\d]/g, '');
 
-  // Nếu user gõ chữ (không phải số) mà ô gốc có chữ
+  // Nếu user gõ chữ (không phải số)
   if (rawValue && !digitsOnly && String(rawValue).trim() !== '') {
     if (input) input.value = '';
     if (clearBtn) clearBtn.hidden = true;
@@ -323,15 +297,16 @@ function applySearch(rawValue) {
   const maxRow = data[data.length - 1];
   const highestMin = maxRow.min;
 
-  // Nếu số vượt dải cao nhất → toast + không highlight
-  if (num >= maxRow.max && Number.isFinite(maxRow.max) && maxRow.max !== Infinity) {
-    highlightRow(null);
-    showToast(`⚠️ Số ${formatNum(num)} vượt dải cao nhất (tối đa ${formatNum(maxRow.max - 1)})`, 'warning', 3000);
-    return;
-  }
-  // Nếu max của row cuối là Infinity (VD ≥12000), chỉ cần num >= min là ok → highlight row cuối
+  // Nếu max của row cuối là Infinity → mọi num >= min đều thuộc row cuối
   if (num >= highestMin && !Number.isFinite(maxRow.max)) {
     highlightRow(num, true);
+    return;
+  }
+
+  // Nếu num vượt max của row cuối (max hữu hạn)
+  if (Number.isFinite(maxRow.max) && num >= maxRow.max) {
+    highlightRow(null);
+    showToast(`⚠️ Số ${formatNum(num)} vượt dải cao nhất (tối đa ${formatNum(maxRow.max - 1)})`, 'warning', 3000);
     return;
   }
 
@@ -387,7 +362,6 @@ function highlightRow(num, isTopRow, matchIdx) {
     const wrapHeight = scrollWrap.clientHeight;
     const headerHeight = tbody.parentElement.querySelector('thead')?.offsetHeight || 0;
 
-    // Nếu row nằm ngoài viewport → scroll tới giữa
     if (rowTop < wrapTop + headerHeight || rowTop + rowHeight > wrapTop + wrapHeight) {
       scrollWrap.scrollTo({
         top: Math.max(0, rowTop - headerHeight - 40),
@@ -396,8 +370,7 @@ function highlightRow(num, isTopRow, matchIdx) {
     }
   }
 }
-
-// ==================== CALC — SYNC 2 INPUT ====================
+// ==================== CALC — SET VALUE ====================
 function setFeeValue(newValue, sourceEl) {
   const clamped = clampValue(newValue, feeType);
   feeValue = clamped;
@@ -406,7 +379,7 @@ function setFeeValue(newValue, sourceEl) {
   const adjInput     = document.getElementById('feeAdjInput');
   const slider       = document.getElementById('feeSlider');
 
-  // Update input nào không phải source
+  // Update input nào không phải source và không đang focus
   if (displayInput && displayInput !== sourceEl && document.activeElement !== displayInput) {
     displayInput.value = feeValue > 0 ? formatNum(feeValue) : '0';
   }
@@ -430,34 +403,43 @@ function setFeeValue(newValue, sourceEl) {
 const _adjTimers = new WeakMap();
 
 function startAdjRepeat(btn) {
+  // ⭐ CHỐNG DOUBLE-START: đang giữ rồi thì bỏ qua
+  if (_adjTimers.has(btn)) return;
+
   const delta = parseInt(btn.dataset.delta, 10);
   if (!Number.isFinite(delta)) return;
 
-  // Nhấn lần đầu
+  // Nhấn lần đầu — apply ngay
   setFeeValue(feeValue + delta);
 
+  // State object giữ CẢ timeout + interval (tránh mất ref)
+  const state = { timeout: null, interval: null };
+  _adjTimers.set(btn, state);
+
   // Sau 500ms → auto-repeat 100ms/lần
-  const timeoutId = setTimeout(() => {
-    const intervalId = setInterval(() => {
+  state.timeout = setTimeout(() => {
+    state.timeout = null;
+    state.interval = setInterval(() => {
       setFeeValue(feeValue + delta);
     }, 100);
-    _adjTimers.set(btn, { interval: intervalId });
   }, 500);
-
-  _adjTimers.set(btn, { timeout: timeoutId });
 }
 
 function stopAdjRepeat(btn) {
-  const t = _adjTimers.get(btn);
-  if (!t) return;
-  if (t.timeout)  clearTimeout(t.timeout);
-  if (t.interval) clearInterval(t.interval);
+  const state = _adjTimers.get(btn);
+  if (!state) return;
+  if (state.timeout)  clearTimeout(state.timeout);
+  if (state.interval) clearInterval(state.interval);
   _adjTimers.delete(btn);
+}
+
+// ⭐ Stop TẤT CẢ button — dùng cho global catch
+function stopAllAdjRepeat() {
+  document.querySelectorAll('.fee-adj-btn').forEach(btn => stopAdjRepeat(btn));
 }
 
 function attachAdjustButtons() {
   document.querySelectorAll('.fee-adj-btn').forEach(btn => {
-    // Tránh attach nhiều lần
     if (btn.dataset.adjAttached === '1') return;
     btn.dataset.adjAttached = '1';
 
@@ -471,7 +453,7 @@ function attachAdjustButtons() {
     btn.addEventListener('pointercancel', () => stopAdjRepeat(btn));
     btn.addEventListener('pointerleave', () => stopAdjRepeat(btn));
 
-    // Fallback touch (một số browser cũ)
+    // Fallback touch (một số browser cũ không fire pointer)
     btn.addEventListener('touchstart', e => {
       if (e.pointerType) return;   // đã handled bởi pointer
       e.preventDefault();
@@ -480,6 +462,24 @@ function attachAdjustButtons() {
     btn.addEventListener('touchend', () => stopAdjRepeat(btn));
     btn.addEventListener('touchcancel', () => stopAdjRepeat(btn));
   });
+
+  // ⭐ GLOBAL CATCH — attach 1 lần cho cả document
+  // Xử lý các case pointer không fire trên button:
+  //   - user vuốt tay ra ngoài button rồi nhả
+  //   - app bị blur (chuyển tab, khoá màn hình)
+  //   - pointerup miss do setPointerCapture lỗi
+  if (!window.__feeAdjGlobalHooked) {
+    window.__feeAdjGlobalHooked = true;
+
+    window.addEventListener('pointerup', stopAllAdjRepeat);
+    window.addEventListener('pointercancel', stopAllAdjRepeat);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopAllAdjRepeat();
+    });
+
+    window.addEventListener('blur', stopAllAdjRepeat);
+  }
 }
 
 // ==================== INPUT EVENTS ====================
@@ -487,12 +487,12 @@ function attachCalcInputs() {
   const displayInput = document.getElementById('feeCalcDisplay');
   const adjInput     = document.getElementById('feeAdjInput');
 
-  // Display input (32px)
+  // Display input (32px, editable)
   if (displayInput && !displayInput.dataset.feeAttached) {
     displayInput.dataset.feeAttached = '1';
 
     displayInput.addEventListener('focus', () => {
-      // Cho user gõ raw số, bỏ format
+      // Cho user gõ raw số, bỏ format dấu chấm
       displayInput.value = feeValue > 0 ? String(feeValue) : '';
     });
 
@@ -516,7 +516,7 @@ function attachCalcInputs() {
     });
   }
 
-  // Adj input (nhỏ)
+  // Adj input (nhỏ, raw number)
   if (adjInput && !adjInput.dataset.feeAttached) {
     adjInput.dataset.feeAttached = '1';
 
@@ -547,19 +547,9 @@ function attachSlider() {
   if (!slider || slider.dataset.feeAttached === '1') return;
   slider.dataset.feeAttached = '1';
 
-  let lastValidValue = feeValue;
-
   slider.addEventListener('input', () => {
     const pos = parseFloat(slider.value);
     const newVal = posToValue(pos, feeType);
-
-    // Tránh nhảy về 0 nếu kéo qua lại gần đầu
-    if (newVal === 0 && lastValidValue > 0 && pos > 0) {
-      // Cho phép về 0 nếu user kéo hẳn về 0
-      // (không xử lý gì đặc biệt — chỉ giữ logic bình thường)
-    }
-
-    if (newVal > 0) lastValidValue = newVal;
     feeValue = newVal;
     setFeeValue(newVal);
   });
@@ -593,6 +583,23 @@ function attachSearch() {
   });
 }
 
+// ==================== MODE SWITCH + TYPE TABS ====================
+function attachModeSwitch() {
+  document.querySelectorAll('.fee-mode-btn').forEach(btn => {
+    if (btn.dataset.feeAttached === '1') return;
+    btn.dataset.feeAttached = '1';
+    btn.addEventListener('click', () => setFeeMode(btn.dataset.mode));
+  });
+}
+
+function attachTypeTabs() {
+  document.querySelectorAll('.fee-type-btn').forEach(btn => {
+    if (btn.dataset.feeAttached === '1') return;
+    btn.dataset.feeAttached = '1';
+    btn.addEventListener('click', () => setFeeType(btn.dataset.type));
+  });
+}
+
 // ==================== PUBLIC API ====================
 export function openFeeTableModal() {
   loadFeeState();
@@ -615,7 +622,7 @@ export function openFeeTableModal() {
     renderCalcResult();
   }
 
-  // Attach events (idempotent)
+  // Attach events (idempotent — có check dataset.feeAttached)
   attachSlider();
   attachAdjustButtons();
   attachCalcInputs();
@@ -632,8 +639,8 @@ export function closeFeeTableModal() {
   const modal = document.getElementById('feeTableModal');
   if (modal) modal.classList.remove('active');
 
-  // Stop any auto-repeat còn sót
-  document.querySelectorAll('.fee-adj-btn').forEach(btn => stopAdjRepeat(btn));
+  // Stop mọi auto-repeat còn sót
+  stopAllAdjRepeat();
 
   // Persist
   persistFeeState();
@@ -649,7 +656,6 @@ export function setFeeMode(mode) {
 
   if (mode === 'table') {
     renderTable();
-    // Apply search nếu có
     const input = document.getElementById('feeSearchInput');
     if (input && input.value) applySearch(input.value);
   } else {
@@ -693,23 +699,6 @@ export function clearFeeSearch() {
   input?.focus();
 }
 
-// ==================== MODE SWITCH + TYPE TABS ====================
-function attachModeSwitch() {
-  document.querySelectorAll('.fee-mode-btn').forEach(btn => {
-    if (btn.dataset.feeAttached === '1') return;
-    btn.dataset.feeAttached = '1';
-    btn.addEventListener('click', () => setFeeMode(btn.dataset.mode));
-  });
-}
-
-function attachTypeTabs() {
-  document.querySelectorAll('.fee-type-btn').forEach(btn => {
-    if (btn.dataset.feeAttached === '1') return;
-    btn.dataset.feeAttached = '1';
-    btn.addEventListener('click', () => setFeeType(btn.dataset.type));
-  });
-}
-
 // ==================== INIT ====================
 let _feeInited = false;
 
@@ -734,7 +723,7 @@ export function initFeeTable() {
     }
   });
 
-  // Đóng khi click backdrop (nhưng không đóng khi click vào modal-box)
+  // Đóng khi click backdrop (không đóng khi click vào modal-box)
   const modal = document.getElementById('feeTableModal');
   if (modal) {
     modal.addEventListener('click', e => {
