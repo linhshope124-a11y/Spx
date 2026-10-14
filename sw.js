@@ -7,7 +7,7 @@
 //    - TESS_CACHE và SHARE_CACHE KHÔNG cần bump (dữ liệu không đổi)
 // =============================================================
 
-const CACHE       = 'spx-tracker-v1';      // ⭐ v3 — sau patch #1, #2, #3
+const CACHE       = 'spx-tracker-v5';     // ⭐ v23 — thêm fee-table.js
 const TESS_CACHE  = 'spx-tesseract-v1';    // giữ nguyên — Tesseract không đổi
 const SHARE_CACHE = 'spx-shared-files';    // giữ nguyên — dữ liệu tạm
 
@@ -26,15 +26,16 @@ const CORE = [
   './js/calc.js',
   './js/theme.js',
   './js/ocr.js',
-  './js/ocr-cache.js',      // ⭐ PATCH #3: file mới
-  './js/sw-bridge.js',      // ⭐ PATCH #2: file mới
+  './js/ocr-cache.js',
+  './js/sw-bridge.js',
   './js/ui.js',
   './js/render.js',
   './js/entry.js',
   './js/backup.js',
   './js/cloud.js',
   './js/undo.js',
-  './js/dialog.js'
+  './js/dialog.js',
+  './js/fee-table.js'      // ⭐ v23: file mới — bảng phí dịch vụ
 ];
 
 // ==================== TESSERACT RUNTIME URLs ====================
