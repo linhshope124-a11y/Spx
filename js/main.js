@@ -50,6 +50,11 @@ import { undoLast } from './undo.js';
 import { showAlert, showConfirm } from './dialog.js';
 import { WEIGHT_KEYS } from './config.js';
 import { requestPrecacheTesseract } from './sw-bridge.js';
+// ⭐ MỚI: fee-table
+import {
+  openFeeTableModal, closeFeeTableModal, initFeeTable,
+  setFeeMode, setFeeType, clearFeeSearch
+} from './fee-table.js';
 
 // ================ AUTO-CLEAR INPUT ================
 function attachAutoClearInputs() {
@@ -472,6 +477,13 @@ Object.assign(window, {
   closeAllOpportunitiesModal,
   setAllOppFilter,
 
+  // ⭐ MỚI: fee-table
+  openFeeTableModal,
+  closeFeeTableModal,
+  setFeeMode,
+  setFeeType,
+  clearFeeSearch,
+
   openOcrPicker: _openOcrPicker,
 
   // REGION
@@ -589,6 +601,9 @@ window.addEventListener('spx:storage-error', () => {
   updateAllViews();
 
   initOcrCache().catch(e => console.warn('[Init] OCR cache init fail:', e));
+
+  // ⭐ MỚI: khởi tạo fee-table (attach events 1 lần)
+  try { initFeeTable(); } catch (e) { console.warn('[Init] FeeTable init fail:', e); }
 
   registerSW();
   setTimeout(() => checkVersion(false), 2000);
