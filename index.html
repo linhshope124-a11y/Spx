@@ -395,7 +395,6 @@
 
   </div>
 </div>
-
 <!-- ============================================================
      BOTTOM NAV
 ============================================================ -->
@@ -954,11 +953,10 @@
 </div>
 
 <!-- ============================================================
-     MODAL MỚI: BẢNG PHÍ DỊCH VỤ
+     MODAL: BẢNG PHÍ DỊCH VỤ (PLAN D — tối giản)
      - 2 mode: Bảng đầy đủ / Tra cứu
      - 3 type: Giao / Lấy / Hoàn
-     - Mode table: search + bảng 8 cột
-     - Mode calc: slider + 5 nút tinh chỉnh + kết quả 8 dải
+     - Mode calc: input to + 2 nút flanking (−10 / +10)
 ============================================================ -->
 <div class="modal-shade fee-table-modal" id="feeTableModal">
   <div class="modal-box fee-table-modal-box">
@@ -1014,11 +1012,11 @@
 
     </div>
 
-    <!-- ============ MODE: TRA CỨU ============ -->
+    <!-- ============ MODE: TRA CỨU (PLAN D — tối giản) ============ -->
     <div class="fee-panel fee-panel-calc" id="feePanelCalc" hidden>
 
-      <div class="fee-calc-display-wrap">
-        <label class="fee-calc-display-lbl" for="feeCalcDisplay">Số đơn</label>
+      <div class="fee-calc-row">
+        <button type="button" class="fee-adj-btn" data-delta="-10" title="Giảm 10">−10</button>
         <input
           type="text"
           inputmode="numeric"
@@ -1028,32 +1026,16 @@
           autocomplete="off"
           aria-label="Số đơn"
         />
-      </div>
-
-      <div class="fee-slider-wrap">
-        <input type="range" id="feeSlider" class="fee-slider" min="0" max="1000" step="1" value="0">
-        <div class="fee-slider-ticks" id="feeSliderTicks">
-          <span class="fee-tick">1</span>
-          <span class="fee-tick">100</span>
-          <span class="fee-tick">1k</span>
-          <span class="fee-tick">10k</span>
-          <span class="fee-tick" id="feeTickMax">50k</span>
-        </div>
-      </div>
-
-      <div class="fee-adjust-row">
-        <button type="button" class="fee-adj-btn fee-adj-big" data-delta="-10" title="−10">◄─10</button>
-        <button type="button" class="fee-adj-btn"             data-delta="-1"  title="−1">−1</button>
-        <input type="text" inputmode="numeric" class="fee-adj-input" id="feeAdjInput" value="0" autocomplete="off">
-        <button type="button" class="fee-adj-btn"             data-delta="1"   title="+1">+1</button>
-        <button type="button" class="fee-adj-btn fee-adj-big" data-delta="10"  title="+10">+10─►</button>
+        <button type="button" class="fee-adj-btn" data-delta="10" title="Tăng 10">+10</button>
       </div>
 
       <div class="fee-result" id="feeResult"></div>
 
       <div class="fee-empty" id="feeEmpty">
-        <div class="fee-empty-ico">🎚️</div>
-        <div class="fee-empty-txt">Chưa nhập số đơn<br>Kéo slider hoặc bấm +1 để bắt đầu</div>
+        <div class="fee-empty-txt">
+          Chưa nhập số đơn<br>
+          Gõ số hoặc bấm +10 để bắt đầu
+        </div>
       </div>
 
     </div>
