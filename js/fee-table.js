@@ -129,8 +129,6 @@ function renderTable() {
   for (let r = 0; r < data.length; r++) {
     const row = data[r];
     bodyHtml += `<tr data-min="${row.min}" data-max="${row.max}">`;
-    bodyHtml += `<td>${row.range}</td>`;
-    // "1,500 - 1,800" → "1500-1800"  |  "≥ 12,000" → "≥12000"
 const compact = String(row.range)
   .replace(/[.,]/g, '')     // bỏ dấu . và ,
   .replace(/ - /g, '-')      // "1 - 15" → "1-15"
