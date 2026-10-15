@@ -130,6 +130,12 @@ function renderTable() {
     const row = data[r];
     bodyHtml += `<tr data-min="${row.min}" data-max="${row.max}">`;
     bodyHtml += `<td>${row.range}</td>`;
+    // "1,500 - 1,800" → "1500-1800"  |  "≥ 12,000" → "≥12000"
+const compact = String(row.range)
+  .replace(/[.,]/g, '')     // bỏ dấu . và ,
+  .replace(/ - /g, '-')      // "1 - 15" → "1-15"
+  .replace(/≥ /g, '≥');      // "≥ 12"  → "≥12"
+bodyHtml += `<td>${compact}</td>`;
     for (let c = 0; c < 8; c++) {
       bodyHtml += `<td>${formatNum(row.pts[c] || 0)}</td>`;
     }
