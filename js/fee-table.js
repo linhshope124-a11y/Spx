@@ -118,7 +118,7 @@ function renderTable() {
 
   const data = getTableData(feeType);
 
-  let headHtml = '<tr><th>Số đơn</th>';
+  let headHtml = '<tr><th>ĐƠN</th>';
   for (let i = 0; i < 8; i++) {
     headHtml += `<th>${WEIGHT_LABELS[i].replace('>', '').replace(' kg', '')}</th>`;
   }
