@@ -3210,3 +3210,47 @@ a.menu-item:visited { color: var(--text-1); }
   .fee-calc-display-input { font-size: 14px; padding: 8px 10px; height: 36px; }
   .fee-adj-btn { min-width: 48px; height: 36px; font-size: 13px; padding: 0 8px; }
 }
+/* =============================================================
+   FEE TABLE — Cột "Số đơn" 1 dòng, gọn nhất
+   ============================================================= */
+
+/* Cột Số đơn — 1 dòng, 46px, không wrap */
+.fee-table thead th:first-child,
+.fee-table tbody td:first-child {
+  min-width: 46px;
+  max-width: 46px;
+  padding: 6px 4px;
+  font-size: 9.5px;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.fee-table thead th:first-child {
+  font-size: 8.5px;
+  letter-spacing: 0.3px;
+  font-weight: 800;
+}
+
+/* Body cells — gọn thêm để hiện nhiều cột */
+.fee-table thead th {
+  padding: 8px 3px;
+  font-size: 8.5px;
+}
+.fee-table tbody td {
+  padding: 7px 3px;
+  font-size: 10.5px;
+}
+
+/* Table wrapper gọn margin */
+.fee-table-scroll {
+  margin: 0 10px 10px;
+  max-height: 64vh;
+}
+
+.fee-search-wrap {
+  margin: 10px 10px 8px;
+  padding: 8px 10px;
+}
